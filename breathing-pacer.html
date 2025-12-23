@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深呼吸ペーサー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .gauge-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px 20px;
+            position: relative;
+            background: white;
+        }
+        
+        .breath-text {
+            font-size: 28px;
+            font-weight: 300;
+            color: #2c5f6f;
+            margin-bottom: 30px;
+            height: 35px;
+        }
+        
+        .gauge-container {
+            width: 80px;
+            height: 100%;
+            max-height: 400px;
+            background: #e8f4f8;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .gauge-fill {
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            transition: height 0.1s linear;
+            border-radius: 0;
+            overflow: hidden;
+        }
+        
+        .gauge-fill::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 400px;
+            background: linear-gradient(to top, #2c5f6f, #4a9bae, #7bc4d4);
+        }
+        
+        .control-area {
+            padding: 30px 25px;
+            background: #fafbfc;
+            border-top: 1px solid #e8ebed;
+        }
+        
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        
+        .setting-label {
+            font-size: 13px;
+            color: #5a6c7d;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 500;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e6eb;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #4a9bae;
+        }
+        
+        .unit {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: #5a6c7d;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding: 0;
+            background: transparent;
+            border-radius: 0;
+            width: 100%;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #8997a5;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c5f6f;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        
+        .button-start {
+            background: linear-gradient(135deg, #4a9bae, #5fb3c7);
+        }
+        
+        .button-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 155, 174, 0.3);
+        }
+        
+        .button-start:disabled {
+            background: #d0d7de;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-pause {
+            background: linear-gradient(135deg, #f59e42, #f5b042);
+        }
+        
+        .button-stop {
+            background: linear-gradient(135deg, #e85d75, #e87d8d);
+            margin-top: 10px;
+        }
+        
+        .session-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .session-input input {
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="gauge-area">
+            <div class="breath-text" id="breathText"></div>
+            <div class="gauge-container">
+                <div class="gauge-fill" id="gaugeFill"></div>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">残り時間</div>
+                    <div class="stat-value" id="remainingTime">--:--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">サイクル数</div>
+                    <div class="stat-value" id="cycleCount">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-area">
+            <div class="setting-group">
+                <label class="setting-label">呼吸の長さ</label>
+                <div class="input-row">
+                    <div style="flex: 1;">
+                        <div style="font-size: 12px; color: #8997a5; margin-bottom: 5px;">吸う</div>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="number" id="inhaleTime" min="1" max="10" value="4">
+                            <span class="unit">秒</span>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 12px; color: #8997a5; margin-bottom: 5px;">吐く</div>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="number" id="exhaleTime" min="1" max="10" value="6">
+                            <span class="unit">秒</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-group">
+                <label class="setting-label">セッション時間</label>
+                <div class="session-input">
+                    <input type="number" id="sessionMinutes" min="1" max="10" value="5">
+                    <span class="unit">分</span>
+                </div>
+            </div>
+            
+            <button class="button button-start" id="startBtn">スタート</button>
+            <button class="button button-pause" id="pauseBtn" style="display:none;">一時停止</button>
+            <button class="button button-stop" id="stopBtn" style="display:none;">停止</button>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let isPaused = false;
+        let animationFrame;
+        let startTime;
+        let pausedTime = 0;
+        let sessionDuration;
+        let cycleCount = 0;
+        let currentPhase = 'inhale';
+        let phaseStartTime;
+        
+        const breathText = document.getElementById('breathText');
+        const gaugeFill = document.getElementById('gaugeFill');
+        const inhaleInput = document.getElementById('inhaleTime');
+        const exhaleInput = document.getElementById('exhaleTime');
+        const sessionInput = document.getElementById('sessionMinutes');
+        const remainingTimeEl = document.getElementById('remainingTime');
+        const cycleCountEl = document.getElementById('cycleCount');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        // 設定を読み込む
+        function loadSettings() {
+            const saved = localStorage.getItem('breathingSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                inhaleInput.value = settings.inhale || 4;
+                exhaleInput.value = settings.exhale || 6;
+                sessionInput.value = settings.session || 5;
+            }
+        }
+        
+        // 設定を保存する
+        function saveSettings() {
+            const settings = {
+                inhale: parseInt(inhaleInput.value),
+                exhale: parseInt(exhaleInput.value),
+                session: parseInt(sessionInput.value)
+            };
+            localStorage.setItem('breathingSettings', JSON.stringify(settings));
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateGauge(progress, phase) {
+            const percentage = progress * 100;
+            gaugeFill.style.height = percentage + '%';
+        }
+        
+        function animate() {
+            if (!isRunning || isPaused) return;
+            
+            const now = Date.now();
+            const elapsed = (now - startTime - pausedTime) / 1000;
+            const remaining = Math.max(0, sessionDuration - elapsed);
+            
+            remainingTimeEl.textContent = formatTime(Math.ceil(remaining));
+            
+            if (remaining <= 0) {
+                stop();
+                return;
+            }
+            
+            const inhaleTime = parseInt(inhaleInput.value);
+            const exhaleTime = parseInt(exhaleInput.value);
+            const cycleTime = inhaleTime + exhaleTime;
+            const phaseElapsed = (now - phaseStartTime) / 1000;
+            
+            if (currentPhase === 'inhale') {
+                const progress = Math.min(phaseElapsed / inhaleTime, 1);
+                updateGauge(progress, 'inhale');
+                breathText.textContent = '吸う';
+                
+                if (phaseElapsed >= inhaleTime) {
+                    currentPhase = 'exhale';
+                    phaseStartTime = now;
+                    cycleCount++;
+                    cycleCountEl.textContent = cycleCount;
+                }
+            } else {
+                const progress = Math.max(1 - (phaseElapsed / exhaleTime), 0);
+                updateGauge(progress, 'exhale');
+                breathText.textContent = '吐く';
+                
+                if (phaseElapsed >= exhaleTime) {
+                    currentPhase = 'inhale';
+                    phaseStartTime = now;
+                }
+            }
+            
+            animationFrame = requestAnimationFrame(animate);
+        }
+        
+        function start() {
+            saveSettings();
+            
+            const sessionMinutes = parseInt(sessionInput.value);
+            if (!sessionMinutes || sessionMinutes < 1) {
+                alert('セッション時間を設定してください');
+                return;
+            }
+            
+            isRunning = true;
+            isPaused = false;
+            startTime = Date.now();
+            phaseStartTime = Date.now();
+            pausedTime = 0;
+            sessionDuration = sessionMinutes * 60;
+            cycleCount = 0;
+            currentPhase = 'inhale';
+            
+            cycleCountEl.textContent = '0';
+            
+            inhaleInput.disabled = true;
+            exhaleInput.disabled = true;
+            sessionInput.disabled = true;
+            
+            startBtn.style.display = 'none';
+            pauseBtn.style.display = 'block';
+            stopBtn.style.display = 'block';
+            
+            animate();
+        }
+        
+        function pause() {
+            if (isPaused) {
+                isPaused = false;
+                const pauseDuration = Date.now() - pauseStartTime;
+                pausedTime += pauseDuration;
+                phaseStartTime += pauseDuration;
+                pauseBtn.textContent = '一時停止';
+                animate();
+            } else {
+                isPaused = true;
+                pauseStartTime = Date.now();
+                pauseBtn.textContent = '再開';
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+        
+        function stop() {
+            isRunning = false;
+            isPaused = false;
+            cancelAnimationFrame(animationFrame);
+            
+            breathText.textContent = '';
+            gaugeFill.style.height = '0%';
+            remainingTimeEl.textContent = '--:--';
+            
+            inhaleInput.disabled = false;
+            exhaleInput.disabled = false;
+            sessionInput.disabled = false;
+            
+            startBtn.style.display = 'block';
+            pauseBtn.style.display = 'none';
+            stopBtn.style.display = 'none';
+        }
+        
+        startBtn.addEventListener('click', start);
+        pauseBtn.addEventListener('click', pause);
+        stopBtn.addEventListener('click', stop);
+        
+        loadSettings();
+    </script>
+</body>
+</html>
